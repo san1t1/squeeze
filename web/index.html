@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+	<title>Squeeze</title>
+	<meta name="google" value="notranslate">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="css/squeeze.css" rel="stylesheet" media="screen">
+
+</head>
+<body>
+	<div class="pleaseWait area">
+		<h1>Please sit tight while Squeezebox loads your library</h1>
+	</div>
+	<div class="header area faded">
+		<div class="holder">
+			<div class="nowPlayingCover"><img class="nowPlayingCover"></div>
+			<div class="nowPlayingTitle"></div>
+			<div class="nowPlayingArtist"></div>
+			<div class="nowPlayingAlbum"></div>
+			<div class="nowPlayingSliderOuter faded">
+				<div class="nowPlayingSliderInner"></div>
+			</div>
+			<div class="nowPlayingTime faded"></div>
+			<div class="mixer">
+				<div class="mixerPrevious mixerButton"><span class='mixerMiddle'><i class="icon-step-backward mixerIcon"></i></span></div>
+				<div class="mixerPause mixerButton"><span class='mixerMiddle'><i class="icon-pause mixerIcon"></i></span></div>
+				<div class="mixerPlay mixerButton"><span class='mixerMiddle'><i class="icon-play mixerIcon"></i></span></div>
+				<div class="mixerNext mixerButton"><span class='mixerMiddle'><i class="icon-step-forward mixerIcon"></i></span></div>
+				<div class="mixerVolume">
+	                <div class="mixerInnerVolume"></div>
+				</div>
+            </div>
+
+			</div>
+		</div>
+	</div>
+	<div class="search area faded">
+		<div class="searchNavigation">
+			<div class="navbar">
+			  <div class="navbar-inner">
+			  	<ul class="nav">
+			  		<li class="active">
+				    	<a class="brand" href="#" id="nowPlayingView" >Now Playing</a>
+				    </li>
+			      <li ><a href="#" id="searchView">Search</a></li>
+			      <li ><a href="#" id="recentsView">New</a></li>
+			    </ul>
+			    <div class="navbar-search pull-right">
+				  	<input type="text" class="search-query" placeholder="Search" id="searchLibrary">
+				</div>
+			  </div>
+			</div>
+		</div>
+		<div class="nowPlayingArea">
+			<div class="nowPlayingItem">
+				
+					<div class="nowPlayingCover"><img class="nowPlayingCover"></div>
+					<div class="nowPlayingDetailsHolder">
+						<div class="nowPlayingTitle"></div>
+						<div class="nowPlayingArtist"></div>
+						<div class="nowPlayingAlbum"></div>
+					</div>
+				
+			</div>
+			<!--
+			<div class="nowPlayingSliderOuter faded">
+				<div class="nowPlayingSliderInner"></div>
+			</div>
+			<div class="nowPlayingTime faded"></div> -->
+		</div>
+		<div class="searchResults">
+			<div class="albumResults">
+				<div class="albumResult faded">
+					<div class="albumResultCover"><img class="albumResultCover"></div>
+					<div class="albumResultControls">
+						<div class="woodButton"><button class="btn btn-large albumResultAdd" type="button"><i class="icon-plus-sign"></i>&nbsp;Add</button></div>
+						<div class="woodButton right"><button class="btn btn-large albumResultPlay" type="button"><i class="icon-play"></i>&nbsp;Play</button></div>
+					</div>
+					<div class="albumResultBackground"></div>
+					<div class="albumResultAlbum"></div>
+					<div class="albumResultArtist"></div>
+					<hr class="albumRule"/>
+					<div class="albumTracks">
+						<div class="albumTrack">
+							<div class="albumTrackPosition"></div>
+							<div class="albumTrackTitle"></div>
+							<div class="albumTrackDuration"></div>
+							<div class="albumTrackControls">
+								<div class="albumTrackPlay smallButton"><i class="icon-play"></i></div>
+								<div class="albumTrackAddToEnd smallButton"><i class="icon-plus-sign"></i></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="playlist area faded">
+		<div class="playlistItem holder">
+			<div class="playlistControls">
+				<div class="playlistPlay smallButton"><i class="icon-play"></i></div>
+				<div class="playlistRemove smallButton"><i class="icon-remove-sign"></i></div>
+			</div>
+			<div class="playlistCover"><img class="playlistCover"></div>
+			<div class="playlistTitle"></div>
+			<div class="playlistArtist"></div>
+			<div class="playlistAlbum"></div>
+		</div>
+	</div>
+</body>
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/volume.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/squeeze.js"></script>
+<script src="/js/library.js"></script>
+<script src="/js/playlist.js"></script>
+<script src="/js/images.js"></script>
+<script src="/js/search.js"></script>
+<script src="/js/main.js"></script>
+<script src="/js/quantize.js"></script>
+<script src="/js/colorthief.js"></script>
+</html>
