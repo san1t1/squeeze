@@ -91,9 +91,11 @@ window.Playlist = (function(){
 			case "loadtracks":
 				Playlist.items = [];
 				Playlist.empty();
+				//yes, i mean to fall through.
 			case "addtracks":
 					if (r[2] === "listRef"){
-						var index = parseInt(decodeURIComponent(r[r[1]=="addtracks" ?4:6]).split(":")[1],10);
+						var index =decodeURIComponent(r[4].indexOf("index") > -1 ? r[4] : r[6]);
+						index = parseInt(index.split(":")[1],10);
 						Squeeze.getPlaylist(function(data){
 							data = Library.resolvePaths(JSON.parse(data));
 							var next = playlist.items[index];

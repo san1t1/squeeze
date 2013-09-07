@@ -53,8 +53,7 @@ body{
 }
 
 .woodButton{
-	background:url(../img/background.png);
-	
+	background:url(../img/background.png);	
 	border-radius: 10px;
 	opacity: 0.8;	
 	width:45%;
@@ -100,6 +99,7 @@ body{
 	height:140px;
 	background: rgba(220,220,220,0.6);
 	-webkit-transition: background 2.0s ease-in-out;
+	overflow:hidden;
 }
 .playlist, .dragItem{
 	top:15px;
@@ -209,7 +209,7 @@ img.nowPlayingCover{
 	height:75px;
 	background: rgba(94, 38, 5,0.2);
 	border-radius:7.5px;
-	overflow:auto;
+	overflow:hidden;
 	box-shadow:  -2px 5px 17px rgba(50, 50, 50, 0.73);
 	-webkit-transition: margin-left 0.25s ease-in-out;
 	-webkit-transition: margin-top 0.25s ease-in-out;
@@ -292,7 +292,9 @@ img.playlistCover{
 	overflow:auto;
 	-webkit-transition: opacity 0.5s ease-in-out;
 }
-
+.trackResults{
+	display:none;
+}
 
 .albumResult {
 	width: 200px;
@@ -329,7 +331,7 @@ div.albumResultCover{
 
 }
 
-div.albumResultAlbum, div.albumResultArtist {
+div.albumResultAlbum, div.albumResultArtistYear {
 	position: absolute;
 	width: 95%;
 	margin-left: 2.5%;
@@ -346,12 +348,17 @@ div.albumResultAlbum{
 	font-size: 1.2em;
 	
 }
-div.albumResultArtist{
-	top: 155px;
+span.albumResultArtist{
 	font-size: 1.1em;
 	font-style: italic;
 }
-
+span.albumResultYear{
+	font-size: 0.9em;
+}
+div.albumResultArtistYear{
+	top: 155px;
+	
+}
 .dragItem{
 	cursor:pointer;
 	position:fixed;
@@ -536,14 +543,14 @@ div.albumResultArtist{
 	box-shadow:  -8px 13px 17px rgba(20, 20, 20, 0.9);
 	-webkit-transition: height 0.05s ease-in-out;
 }
-.albumViewer>.albumResultArtist {
+.albumViewer>.albumResultArtistYear {
 	margin-left: 35%;
 	width: 65%;
-	top: 65px;
+	top: 55px;
 	font-size: 1.6em;
 	height: 25px;
 }
-div.albumResultAlbum, div.albumResultArtist, div.albumResultBackground, div.albumTracks{
+div.albumResultAlbum, div.albumResultArtistYear, div.albumResultBackground, div.albumTracks{
 	-webkit-transition: opacity 0.5s ease-in-out;
 }
 .albumViewer>.albumResultCover {
@@ -570,7 +577,7 @@ div.albumResultAlbum, div.albumResultArtist, div.albumResultBackground, div.albu
 	border-radius:5px;
 }
 
-.albumTrack{
+.albumTrack, .trackTrack{
 	width: 95%;
 	margin-left: 1.5%;
 	margin-bottom: 5px;
@@ -583,7 +590,7 @@ div.albumResultAlbum, div.albumResultArtist, div.albumResultBackground, div.albu
 	background: rgba(94, 38, 5,0.2);
 	box-shadow:  -1px 3px 8px rgba(50, 50, 50, 0.2);
 }
-.albumTrack:hover{	
+.albumTrack:hover, .trackTrack:hover{	
 	box-shadow:  -2px 5px 17px rgba(50, 50, 50, 0.73);
 	padding: 2.5px;
 	height:27px;
@@ -618,7 +625,7 @@ div.albumResultAlbum, div.albumResultArtist, div.albumResultBackground, div.albu
 	overflow: hidden;
 	white-space: nowrap;
 }
-.albumTrackControls{
+.albumTrackControls, .trackTrackControls{
 	display:none;
 	float: right;
 	padding: 3px;
@@ -630,7 +637,7 @@ div.albumResultAlbum, div.albumResultArtist, div.albumResultBackground, div.albu
 }
 
 
-.albumTrackControls:hover{
+.albumTrackControls:hover,  .trackTrackControls:hover{
 	margin-top:-1px;
 	margin-right:-1px;
 	background:rgba(200,200,200,0.9);
@@ -703,6 +710,7 @@ div.albumResultAlbum, div.albumResultArtist, div.albumResultBackground, div.albu
 	top:42px;
 	position:absolute;
 	-webkit-transition: opacity 0.5s ease-in-out;
+	pointer-events:none;
 	
 }
 .nowPlayingItem{
@@ -785,3 +793,74 @@ img.nowPlayingCover{
 	margin-top: 15px;
  }
 
+
+.trackResults{
+	width:80%;
+	margin-left:10%;
+	background:url(../img/background.png);
+	background-position: fixed;
+	background-size:100% 100%;
+	box-shadow: rgba(69, 69, 68, 0.8) -10px 10px 25px;
+	border: 2px solid rgb(255, 255, 255);
+	height: 450px;
+	border-radius: 15px;
+}
+.trackTracks{
+	width:90%;
+	height:98%;
+	margin-left:5%;
+	overflow:auto;
+	padding-top:5px;
+}
+.trackTrack{
+	margin-top:5px;
+	cursor:pointer;
+}
+.trackDetail {
+	float: left;
+	font-size: 1.2em;
+	max-width: 90%;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+.trackTrackDuration{
+	float:right;
+	width:10%;
+	text-align:center;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.trackTrackPlayNext,.trackTrackAddToEnd{
+	float:right;
+}
+.trackTrackAddToEnd{
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-left:2px;
+	padding-right:3px;
+}
+.trackTrack:hover .trackTrackDuration{
+	display:none;
+}
+.trackTrack:hover .trackTrackControls{
+	display:block;
+	box-shadow:  -1px 1px 5px rgba(50, 50, 50, 0.73);
+}
+.trackTrack:hover{
+	margin-top: -6px;
+}
+.trackTrack:hover .trackDetail{
+	margin-top: 3px;
+}
+.dragItem.trackTrack{
+	margin-top:-15px;
+	margin-left:-250px;
+}
+
+.playerSelect.active {
+	background-color: #ccc;
+	font-weight: bold;
+}

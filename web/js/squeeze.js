@@ -1,4 +1,60 @@
+
+var clearCache = function () {
+	localStorage.clear();
+	Squeeze.fs.root.getFile('titles.json', {create: false}, function(fileEntry) {
+	    fileEntry.remove(function() {
+	      console.log('titles removed.');
+	    });
+	}); 
+	Squeeze.fs.root.getFile('albums.json', {create: false}, function(fileEntry) {
+	    fileEntry.remove(function() {
+	      console.log('albums removed.');
+	    });
+	}); 
+	Squeeze.fs.root.getFile('artists.json', {create: false}, function(fileEntry) {
+	    fileEntry.remove(function() {
+	      console.log('artists removed.');
+	    });
+	}); 
+	var toArray = function(list) {
+		return Array.prototype.slice.call(list || [], 0);
+	};
+	var dirReader = Squeeze.fs.root.createReader();
+	var entries = [];
+
+	// Call the reader.readEntries() until no more results are returned.
+	var readEntries = function () {
+		dirReader.readEntries(function (results) {
+			if (!results.length) {
+				var i = 0;
+				entries.map(function (e) {
+					i++;
+					e.remove(function () {
+						console.log("removed", e.name);
+					});
+				});
+			} else {
+				entries = entries.concat(toArray(results));
+				readEntries();
+			}
+		});
+	};
+	readEntries(); // Start reading dirs.
+};
+
 window.Squeeze = (function(){
+	window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+	window.webkitStorageInfo.requestQuota(PERSISTENT, 62428800 * 16, function (grantedBytes) {
+		window.requestFileSystem(window.PERSISTENT, 62428800 * 16, function (r) {
+			window.Squeeze.fs = r;
+			//clearCache();
+		}, function (err) {
+			console.log(err);
+		});
+	}, function (e) {console.log('Error getting quota', e);
+	});
+
+
 	var sq = {status:{},playing:{}};
 	var io = window.io.connect(), connected = false;
 	var q =[], handlers={},busy=false, events=["connected"], eventHandlers={};
@@ -45,7 +101,7 @@ window.Squeeze = (function(){
 		}
 		busy = true;
 		var d = Date.now();
-		var cmd = JSON.stringify({cmd:c.cmd,p:c.parm,cb:d});
+		var cmd = JSON.stringify({player:sq.player,cmd:c.cmd,p:c.parm,cb:d});
 		handlers[d] = c;
 		setTimeout(function(){
 			//console.log("emmitting", cmd);
@@ -55,7 +111,12 @@ window.Squeeze = (function(){
 		},c.delay)
 	};
 	var statusParser = function(data){
+		
 		data = data.split(" ");
+		if (!sq.player){return;}
+		if (decodeURIComponent(data[0]) !== sq.player){
+			return;
+		}
 		data.splice(3).map(function(d){
 			var d = decodeURIComponent(d).trim().split(":");
 			switch(d[0]){
@@ -75,7 +136,7 @@ window.Squeeze = (function(){
 	};
 	var queue = function(cmd, parm, cb, delay, persist){
 		var d = Date.now();
-		q.push({cmd:cmd,parm:parm,cb:cb,delay:delay || 0, persist:persist});
+		q.push({player:sq.player, cmd:cmd,parm:parm,cb:cb,delay:delay || 0, persist:persist});
 		runQueue();
 	};
 
@@ -142,6 +203,9 @@ window.Squeeze = (function(){
 			}
 		});
 	};
+	sq.getCover = function(url, cb){
+		queue("cover", "url", cb)
+	};
 	sq.getStore = function(store, p, cb){
 		queue(store, p, cb);
 	};
@@ -190,6 +254,36 @@ window.Squeeze = (function(){
 	};
 	sq.playAlbum = function(album){
 		queue("playAlbum", album,noOp)
+	};
+	sq.players = function(cb){
+		queue("players", "0 10", function(r){
+			r = r.split(" ");
+			var out = [];
+			var c = false;
+			r.map(function(a){
+				a = decodeURIComponent(a).split(":");
+				switch (a[0]){
+					case "playerid":
+						if (c){out.push(c)};
+						c = {};
+						a.shift();
+						c = {id:a.join(":")};
+						break;
+					case "name":
+						c.name = a[1];
+						break;
+				}
+			});
+			out.push(c);
+			cb(out);
+		});
+	};
+	sq.randomSongs = function(cb){
+		queue("random", cb);
+	};
+	sq.setPlayer = function(id){
+		sq.player = id;		
+		console.log("Set Player to " + id);
 	};
 	return sq;
 }());

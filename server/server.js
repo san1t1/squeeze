@@ -1,44 +1,77 @@
+/*jslint node:true, sloppy:true, white:true, vars:true, nomen:true, plusplus:true, regexp:true */
 var telnet = require('./telnetclient'),
 	express = require('express.io'),
+	path = require('path'),
+	library = require('./library'),
 	fs = require('fs'),
-	app = express();
+	app = express(),
+	domain = require('domain');
 
-var ios = [];
+var ios = [], connected = false, client, server;
 
-var client =new telnet.Client("127.0.0.1",9090,{},function(l){
-		l.write("listen 1\n");
-	})
-	.on("data", function(d,e){
-		var i=0;
-		for (i; i<ios.length; i++){
-			console.log("event",d.trim());
-			ios[i].io.emit("event",d.trim());
-		}
-	})
-	.on("end", function(){console.log("server dicsonnceted");})
 
-var runCommand = function(cmd, cb){
+
+
+var connect = function(){
+	console.log("Attempting to connect to squeeze server");
+	var d = domain.create();
+	d.on("error", function(e){
+		connected = false;
+		client = false;
+		setTimeout(connect, 2000);
+	});
+	d.run(function(){
+		client =new telnet.Client(server.address,server.telnet,{},function(l){
+			if (!connected){
+				connected = true;
+				console.log("Connected to squeeze server");
+			}
+			l.write("listen 1\n");
+		})
+		.on("data", function(d,e){
+			
+			var i=0;
+			for (i; i<ios.length; i++){
+				console.log("event",d.trim());
+				ios[i].io.emit("event",d.trim());
+			}
+		})
+		.on("end", function(){
+			setTimeout(connect, 2000);
+		});
+	});
+};
+
+
+
+var runCommand = function(player, cmd, cb){
 	if(cmd.indexOf("status") === -1){
-		console.log("running command '" +cmd +"'");
+		console.log("running command " +cmd + (player ? " on player " + player : ""));
 	}
-	var cl = new telnet.Client("127.0.0.1",9090,{},function(l){
-		l.write(cmd +"\n");
+	var cl = new telnet.Client(server.address,server.telnet,{},function(l){
+		l.write((player ? player +" " : "") + cmd +"\n");
 	})
 	.on("data", function(d,e){
 		cb(d);
 		cl.socket.end();
-	})
+	});
 };
 
 app.get("/svn*", function(req,res){
+	var svnFile = path.resolve(__dirname+"/../../static/authtoken.txt");
+	console.log("SVNFILE", svnFile);
 	var t = req.url.split("?")[1];
 	if (t){
-		fs.writeFileSync("/home/tim/authtoken.txt",t);
+		fs.writeFileSync(svnFile,t);
 	}
 	else{
-		t = fs.readFileSync("")
+		t = fs.readFileSync(svnFile);
+		res.header("Content-Type","text/plain");
 	}
-	res.send("thanks", t);
+	res.send(t);
+});
+app.get("/scan", function(req,res){
+	res.send("1367962860");
 });
 
 app.get("/cover/*", function(req,res){
@@ -48,18 +81,22 @@ app.get("/cover/*", function(req,res){
 	var path = "/music/"+c[0]+"/cover"+(c[1] ? "_"+c[1]:"");
 	console.log("get cover", path);
 	var httpOpts = {
-		hostname: "127.0.0.1", 
-        port: 9000,
+		hostname: server.address, 
+        port: server.http,
         path: path,
         method: 'GET'
     };
 	require('http').request(httpOpts, function(response){
  		response.pipe(res);
     }).on('error', function (error) {
-        cb("Failed to reach " + path + " - " + error,false); 
+        console.log("Failed to reach " + path + " - " + error,false); 
     }).end();
 });
-app.use(express.static(__dirname + '/../web'));
+
+
+var staticPath = path.resolve(__dirname +'/../web');
+app.use(library.express);
+app.use(express["static"](staticPath));
 app.http().io();
 // Setup the ready route, and emit talk event.
 app.io.route('ready', function(req) {
@@ -69,69 +106,10 @@ app.io.route('ready', function(req) {
     	ios.splice(ios.indexOf(req),1);
     	console.log("there are " + ios.length + " connections remaining");
     	console.log("disconnect");
-    })
+    });
 });
-var tagSet = {
-	artists:"s",
-	albums:"alwSj",
-	titles:"DatudesydcC"
-};
-var getStore = function(c,p, cb){	
-	var tags = tagSet[c];
-	var cmd = c + " " + p+" tags:" + tags;
-	runCommand(cmd, function(data){
-		var d = data;
-		data = data.split(" ");
-		var i=0;
-		for (i; i<data.length; i++){
-			try{
-				data[i] = decodeURIComponent(data[i]).trim();
-			}
-			catch (e){
-				console.error(e, data[i]);
-			}
-		}
-		data.shift();
-		var obj={};
-		var start = data.shift();
-		obj.start =parseInt(start,10);
-		obj.end=parseInt(data.shift(),10);
-		data.shift();
-		obj.items = [];
-		var it = d = false;
-		while (data.length > 1){
-			d = data.shift().split(":");
-			switch (d[0]){
-				case "id":
-					if (it){obj.items.push(it)};
-					it = {id:parseInt(d[1],10)};
-					break
-				case "artist_id":
-				case "album_id":
-				case "duration":
-				case "year":
-				case "artwork_track_id":
-				case "tracknum":
-					it[d[0]] = parseInt(d[1],10);
-					break;
-				case "compilation":
-					it.compilation = d[1] === "1";
-					break;
-					
-				default:
-					var x = d.shift();
-					it[x] = d.join(":");
-			}
-		}
-		obj.items.push(it);
-		obj.total = parseInt(data.shift().split(":")[1],10);
-		setTimeout(function(){ //use a delay to prevent locking sqlite too long.
-			cb(JSON.stringify(obj));
-		},250);
-	});
-};
-var getPlaylist = function(cb){
-	runCommand('playlist tracks ?', function(data){
+var getPlaylist = function(player, cb){
+	runCommand(player, 'playlist tracks ?', function(data){
 		var i = data.split(" ")[3].trim(), out = [];
 		var next = function(){
 			i--;
@@ -139,43 +117,46 @@ var getPlaylist = function(cb){
 				out.reverse();
 				return cb(JSON.stringify(out));
 			}
-			runCommand("playlist path " + i + " ?", function(data){
+			runCommand(player, "playlist path " + i + " ?", function(data){
 				out.push(decodeURIComponent(data.split(" ")[4]).trim());
 				next();
 			});
 		};
 		next();
-	})
+	});
 };
-var move = function(p, cb){
-	runCommand("playlist move " + p, cb);
+var getPlayers = function(p, cb){
+	runCommand(false, "players " + p, cb);
 };
-var setPosition = function(t, cb){
-	runCommand("time " + t, cb);
+var move = function(player, p, cb){
+	runCommand(player, "playlist move " + p, cb);
 };
-var pause = function(t, cb){
-	runCommand("pause " + t, cb);
+var setPosition = function(player, t, cb){
+	runCommand(player, "time " + t, cb);
 };
-var jump = function(i,cb){
-	runCommand("playlist index " + i,cb);
+var pause = function(player, t, cb){
+	runCommand(player, "pause " + t, cb);
 };
-var volume = function(i,cb){
-	runCommand("mixer volume " + i,cb);
+var jump = function(player, i,cb){
+	runCommand(player, "playlist index " + i,cb);
 };
-var remove = function(i,cb){
-	runCommand("playlist delete " + i,cb);
+var volume = function(player, i,cb){
+	runCommand(player, "mixer volume " + i,cb);
 };
-var addTrack = function(p,cb){
-	runCommand("playlist add " + p, cb);
+var remove = function(player, i,cb){
+	runCommand(player, "playlist delete " + i,cb);
 };
-var addAlbum = function(id,cb){
-	runCommand("playlistcontrol cmd:add album_id:"+id,cb);
+var addTrack = function(player, p,cb){
+	runCommand(player, "playlist add " + p, cb);
 };
-var playAlbum = function(id,cb){
-	runCommand("playlistcontrol cmd:load album_id:"+id,cb);
+var addAlbum = function(player, id,cb){
+	runCommand(player, "playlistcontrol cmd:add album_id:"+id,cb);
 };
-var playTrack = function(p,cb){
-	runCommand("playlist load "+p,cb);
+var playAlbum = function(player, id,cb){
+	runCommand(player, "playlistcontrol cmd:load album_id:"+id,cb);
+};
+var playTrack = function(player, p,cb){
+	runCommand(player, "playlist load "+p,cb);
 };
 app.io.route('command', function(req){
 	var cmd = JSON.parse(req.data);
@@ -185,50 +166,62 @@ app.io.route('command', function(req){
 	};
 	switch (cmd.cmd){
 		case "serverstatus":
-		case "status":
-			runCommand(cmd.cmd,respond);
+			runCommand(false, cmd.cmd,respond);
 			break;
-		case "artists":
-		case "albums":
-		case "titles":
-			getStore(cmd.cmd, cmd.p,respond);
+		case "status":
+			runCommand(cmd.player, cmd.cmd,respond);
 			break;
 		case "playlist":
-			getPlaylist(respond);
+			getPlaylist(cmd.player,respond);
 			break;
 		case "move":
-			move(cmd.p, respond);
+			move(cmd.player,cmd.p, respond);
 			break;
 		case "setpos":
-			setPosition(cmd.p,respond);
+			setPosition(cmd.player,cmd.p,respond);
 			break;
 		case "pause":
-			pause(cmd.p,respond);
+			pause(cmd.player,cmd.p,respond);
 			break;
 		case "jump":
-			jump(cmd.p,respond);
+			jump(cmd.player,cmd.p,respond);
 			break;
 		case "volume":
-			volume(cmd.p,respond);
+			volume(cmd.player,cmd.p,respond);
 			break;
 		case "remove":
-			remove(cmd.p,respond);
+			remove(cmd.player,cmd.p,respond);
 			break;
 		case "addTrack":
-			addTrack(cmd.p, respond);
+			addTrack(cmd.player, cmd.p, respond);
 			break;
 		case "playTrack":
-			playTrack(cmd.p, respond);
+			playTrack(cmd.player,cmd.p, respond);
 			break;
 		case "addAlbum":
-			addAlbum(cmd.p, respond);
+			addAlbum(cmd.player, cmd.p, respond);
 			break;
 		case "playAlbum":
-			playAlbum(cmd.p, respond);
+			playAlbum(cmd.player, cmd.p, respond);
+			break;
+		case "players":
+			getPlayers(cmd.p, respond);
+			break;
+		case "random":
+			runCommand(cmd.player, "prefset plugin.randomplay exclude_genres", respond);
 			break;
 		default:
 			console.log("Unknown cmd", cmd);
 	}
 });
-app.listen(8080);
+
+fs.readFile(path.resolve(__dirname+"/../conf.json"), function(e,f){
+	var conf = JSON.parse(f.toString());
+	server = conf.server;
+	connect();
+	app.listen(conf.port);
+	console.log("listening on port " + conf.port);
+});
+
+
 
